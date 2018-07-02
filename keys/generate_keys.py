@@ -2,6 +2,7 @@
 
 from cryptography.fernet import Fernet
 from os import path
+import getpass
 
 base_path = path.dirname(__file__)
 
@@ -20,6 +21,11 @@ check_key = open('masterkey.key', 'r')
 rkey = check_key.read()
 cipher_suite = Fernet(rkey)
 
+client_id= input('Enter your client Id: ').strip()
+client_secret = input('Enter your client secret: ').strip()
+username = input('Enter your Reddit username: ').strip()
+password = getpass.getpass('Enter your Reddit Password: ')
+
 #add necessary info in between the '' here
 client_id_encoded = cipher_suite.encrypt(b'')
 client_secret_encoded = cipher_suite.encrypt(b'')
@@ -37,5 +43,5 @@ for x, y in encoded_info.items():
 	write_key_file.write(str(x)[2:r_end])
 	write_key_file.close()
 
-
-#print(client_id_decoded)
+print('success, encrypted keys have been created')
+input('press enter to close')

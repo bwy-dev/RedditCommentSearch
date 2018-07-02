@@ -33,7 +33,7 @@ r = praw.Reddit(client_id= decrypts[0][2:ends[0]],
 user = r.redditor(decrypts[2][2:ends[2]])
 
 #string you wish to search for in their comments
-search_term = 'BDO'
+search_term = input('Enter search term: ')
 num_hits = 0
 
 #iterates over comments and checks for search_term's inclusion
@@ -52,7 +52,8 @@ for comment in user.comments.new(limit=None):
 		print('could not find: ', search_term)
 
 if num_hits > 1:
-	print(num_hits)
+	print('\n'+'Found '+str(num_hits)+' hits')
 else:
 	print('search did not return any results')
 
+m = input('press close to exit')
