@@ -11,3 +11,6 @@
 #ignore all outputs and logs
 *.output
 *.log
+
+#ignore any test files
+test.py
