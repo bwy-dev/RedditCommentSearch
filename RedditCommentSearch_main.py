@@ -1,16 +1,25 @@
-import praw, string, re
-
+import praw, string, re, webbrowser
+import subprocess as sp
 from cryptography.fernet import Fernet
+from os import path
 
-check_key = open('keys/'+'masterkey.key', 'r')
-rkey = check_key.read()
-cipher_suite = Fernet(rkey)
+base_path = path.dirname(__file__)
+key_file = path.isfile(path.join(base_path,'keys/masterkey.key'))
+
+kf= 'keys/'
+
+if key_file == True: #checks if masterkey.key has been generated yet
+	check_key = open(kf+'masterkey.key', 'r')
+	rkey = check_key.read()
+	cipher_suite = Fernet(rkey)
+else:
+	raise Exception('masterkey.key does not exist! Run keys/generate_keys.py before running RedditCommentSearch.py')
 
 #get encrypted keys from their .key files
-client_id_key = open('keys/'+'client_id_encoded.key', 'r').read().encode()
-client_secret_key = open('keys/'+'client_secret_encoded.key', 'r').read().encode()
-username_key = open('keys/'+'username_encoded.key', 'r').read().encode()
-password_key = open('keys/'+'password_encoded.key', 'r').read().encode()
+client_id_key = open(kf+'client_id_encoded.key', 'r').read().encode()
+client_secret_key = open(kf+'client_secret_encoded.key', 'r').read().encode()
+username_key = open(kf+'username_encoded.key', 'r').read().encode()
+password_key = open(kf+'password_encoded.key', 'r').read().encode()
 
 #iterates over the keys, decrypting them, then working out their length to remove the ''s from them
 decrypt_key = [client_id_key, client_secret_key, username_key, password_key]
@@ -29,11 +38,12 @@ r = praw.Reddit(client_id= decrypts[0][2:ends[0]],
 				username= decrypts[2][2:ends[2]],
 				password= decrypts[3][2:ends[3]])
 
-#username of redditor whos comment history you want to search
+#username of redditor whos comment history you want to search, while this is currently set to the users, it can be any usename you wish
 user = r.redditor(decrypts[2][2:ends[2]])
 
-#string you wish to search for in their comments
+#ask user for string to search for in their comments
 search_term = input('Enter search term: ')
+
 num_hits = 0
 
 #iterates over comments and checks for search_term's inclusion
@@ -54,6 +64,20 @@ for comment in user.comments.new(limit=None):
 if num_hits > 1:
 	print('\n'+'Found '+str(num_hits)+' hits')
 else:
-	print('search did not return any results')
+	print('\nSearch did not return any results')
 
-m = input('press close to exit')
+islooping = True
+
+while True:
+	done = input('would you like to open output file in notepad?: y/n: ')
+	if done == 'y':
+		programName = 'notepad.exe'
+		fileName = 'output/'+f'{search_term}.output'
+		sp.Popen([programName, fileName])
+		break
+	elif done == 'n':
+		break
+	else:
+		print('please enter either y or n')
+
+m = input('press enter to exit')
