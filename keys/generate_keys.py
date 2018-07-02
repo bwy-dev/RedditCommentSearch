@@ -5,17 +5,17 @@ from os import path
 
 base_path = path.dirname(__file__)
 
-key_file = path.isfile(path.join(base_path,'key.key'))
+key_file = path.isfile(path.join(base_path,'masterkey.key'))
 
 if key_file == False: 
 	key = Fernet.generate_key() #this is your "password"
-	make_key_file = open('key.key', 'w')
+	make_key_file = open('masterkey.key', 'w')
 	make_key_file.write(str(key)[2:46])
 	make_key_file.close()
 else:
 	pass
 
-check_key = open('key.key', 'r')
+check_key = open('masterkey.key', 'r')
 rkey = check_key.read()
 cipher_suite = Fernet(rkey)
 

@@ -1,8 +1,8 @@
-import praw
-import base64
+import praw, string, re
+
 from cryptography.fernet import Fernet
 
-check_key = open('keys/'+'key.key', 'r')
+check_key = open('keys/'+'masterkey.key', 'r')
 rkey = check_key.read()
 cipher_suite = Fernet(rkey)
 
@@ -37,17 +37,17 @@ r = praw.Reddit(client_id= cid_decrypt[2:cid_end],
 user = r.redditor(un_decrypt[2:un_end])
 
 #string you wish to search for in their comments
-search_term = ''
+search_term = 'it'
 num_hits = 0
 
 #iterates over comments and checks for search_term's inclusion
 for comment in user.comments.new(limit=None):
 	print(comment.body)
-	if search_term == '':
+	if search_term == '' or search_term.isspace(): #throws exception if search_term is empty
 		raise Exception('Search term cannot be empty')
 	elif search_term in comment.body:
 		num_hits = num_hits + comment.body.count(search_term) #just a hit count for the end
-		text_file = open('output/'+f'{search_term}.output', 'a')
+		text_file = open('output/'+f'{search_term}.output', 'a', encoding='utf-8')
 		text_file.write(f'--{comment.body}\n')
 		text_file.write(f'  -url: {comment.permalink}\n\n')
 		text_file.close()
@@ -58,5 +58,5 @@ for comment in user.comments.new(limit=None):
 if num_hits > 1:
 	print(num_hits)
 else:
-	print('search term did not return any results')
+	print('search did not return any results')
 
