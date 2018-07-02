@@ -6,38 +6,34 @@ check_key = open('keys/'+'masterkey.key', 'r')
 rkey = check_key.read()
 cipher_suite = Fernet(rkey)
 
+#get encrypted keys from their .key files
 client_id_key = open('keys/'+'client_id_encoded.key', 'r').read().encode()
-cid_decrypt = str(cipher_suite.decrypt(client_id_key))
-cid_len = len(cid_decrypt)
-cid_end = cid_len - 1
-
 client_secret_key = open('keys/'+'client_secret_encoded.key', 'r').read().encode()
-cs_decrypt = str(cipher_suite.decrypt(client_secret_key))
-cs_len = len(cs_decrypt)
-cs_end = cs_len - 1
-
 username_key = open('keys/'+'username_encoded.key', 'r').read().encode()
-un_decrypt = str(cipher_suite.decrypt(username_key))
-un_len = len(un_decrypt)
-un_end = un_len - 1
-
 password_key = open('keys/'+'password_encoded.key', 'r').read().encode()
-pw_decrypt = str(cipher_suite.decrypt(password_key))
-pw_len = len(pw_decrypt)
-pw_end = pw_len - 1
+
+#iterates over the keys, decrypting them, then working out their length to remove the ''s from them
+decrypt_key = [client_id_key, client_secret_key, username_key, password_key]
+decrypts = [''] *4 
+lens = [0] *4
+ends = [0] *4
+for i in range(3):
+	decrypts[i] = str(cipher_suite.decrypt(decrypt_key[i]))
+	lens[i] = len(decrypts[i])
+	ends[i] = lens[i] - 1
 
 #checks your Reddit information in order to connect to Reddit API.
-r = praw.Reddit(client_id= cid_decrypt[2:cid_end],
-				client_secret= cs_decrypt[2:cs_end],
+r = praw.Reddit(client_id= decrypts[0][2:ends[0]],
+				client_secret= decrypts[1][2:ends[1]],
 				user_agent='RedditCommentSearch',
-				username= un_decrypt[2:un_end],
-				password= pw_decrypt[2:pw_end])
+				username= decrypts[2][2:ends[2]],
+				password= decrypts[3][2:ends[3]])
 
 #username of redditor whos comment history you want to search
-user = r.redditor(un_decrypt[2:un_end])
+user = r.redditor(decrypts[2][2:ends[2]])
 
 #string you wish to search for in their comments
-search_term = 'it'
+search_term = 'BDO'
 num_hits = 0
 
 #iterates over comments and checks for search_term's inclusion

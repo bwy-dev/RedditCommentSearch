@@ -7,14 +7,15 @@ base_path = path.dirname(__file__)
 
 key_file = path.isfile(path.join(base_path,'masterkey.key'))
 
-if key_file == False: 
-	key = Fernet.generate_key() #this is your "password"
+if key_file == False: #if masterkey doesn't exist, generate it
+	key = Fernet.generate_key() 
 	make_key_file = open('masterkey.key', 'w')
 	make_key_file.write(str(key)[2:46])
 	make_key_file.close()
 else:
 	pass
 
+#opens the master key
 check_key = open('masterkey.key', 'r')
 rkey = check_key.read()
 cipher_suite = Fernet(rkey)
@@ -28,6 +29,7 @@ username_encoded = cipher_suite.encrypt(b'')
 encoded_info = {client_id_encoded : 'client_id_encoded', client_secret_encoded : 'client_secret_encoded', password_encoded : 'password_encoded',
 username_encoded : 'username_encoded'}
 
+#writes a .key file for each value
 for x, y in encoded_info.items():
 	write_key_file = open(f'{y}.key', 'w')
 	x_length = len(str(x))
