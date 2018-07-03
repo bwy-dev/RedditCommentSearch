@@ -1,9 +1,12 @@
-import praw, re, webbrowser
+import praw, webbrowser
 import subprocess as sp
 from cryptography.fernet import Fernet
 from os import path
 from prawcore.exceptions import NotFound, BadRequest
 from key_pathing import KeyPathing as kp
+
+
+
 
 k= 'keys/'
 
@@ -51,49 +54,90 @@ while True:
 		break
 
 
+#generates a list of all subreddits user has commented it
+sr_output_file = path.isfile(f'output/{chooseuser}_subreddits.output')
+
+subreddits_list_raw = []
+subreddits_list = []
+if sr_output_file == False:
+	print('generating subreddit list...')
+	comments = user.comments.new(limit=None)
+	for comment in comments:
+		sr_commented = comment.subreddit.display_name	
+		subreddits_list_raw.append(sr_commented)
+
+	for i in subreddits_list_raw:
+		if i not in subreddits_list:
+			subreddits_list.append(i)
+
+	sr_file = open(f'output/{chooseuser}_subreddits.output', 'a', encoding='utf-8')	
+	for i in subreddits_list:
+		sr_file.write(f'{i}\n')
+	sr_file.close()
+	for p in subreddits_list:
+		print(p)
+else:
+	print('generating subreddit list...')
+	lines_list = open(f'output/{chooseuser}_subreddits.output').read().splitlines()
+	if len(lines_list) % 2 != 0:
+		lines_list.append(" ")
+	half = len(lines_list)//2
+	sr_1 = lines_list[0:half]
+	sr_2 = lines_list[half:]
+	iterate = len(sr_1)
+	for i in range(iterate):
+		print('{0:<30s}{1}'.format(sr_1[i], sr_2[i]))
+
+
 #ask user for string to search for in their comments.
+num_hits = 0
 search_term = input('Enter search term: ')
+
 
 while True:
 	sub_search = input('do you wish to search a specific subreddit? y/n : ')
 	if sub_search == 'y':
 		search_subreddit = input('select a subreddit to search: ')
-		break
+		try:
+			r.subreddit(search_subreddit).random()
+			break
+		except NotFound:
+			print('subreddit does not exist')
 	elif sub_search == 'n':
 		break
 	else:
 		print('please enter either y or n')
 
-num_hits = 0
 
 def saveOutput(comment_body, comment_permalink):
-	text_file = open('output/'+f'{search_term}.output', 'a', encoding='utf-8')
+	global num_hits
+	global text_file
+	num_hits = num_hits + comment_body.count(search_term)
 	text_file.write(f'--{comment_body}\n')
 	text_file.write(f'  -url: {comment_permalink}\n\n')
-	text_file.close()
+	print(search_term, ': found in this comment', comment_body.count(search_term), 'time(s)')
 
 
 #iterates over comments and checks for search_term's inclusion.
 for comment in user.comments.new(limit=None):
 	cb = comment.body
 	cp = comment.permalink
+	text_file = open('output/'+f'{search_term}.output', 'a', encoding='utf-8')
 	print(comment.body)
-	if search_term == '' or search_term.isspace(): #throws exception if search_term is empty.
+	if search_term == '' or search_term.isspace(): #throws exception if search_term is empty. @@@ PUT UP BY search_term IN WHILE LOOP @@@
 		raise Exception('Search term cannot be empty')
 	elif sub_search == 'y': # if sub_search is yes, only pick out comments from specified subreddit.
 		if search_term in comment.body and str(comment.subreddit) == search_subreddit:
-			num_hits = num_hits + comment.body.count(search_term)
 			saveOutput(cb, cp)
-			print(search_term, ': found in this comment', comment.body.count(search_term), 'time(s)')
 		else:
 			print('could not find: '+ search_term+ ' in '+ search_subreddit)
 	else: # sub_search is no, just check all comments.
 		if search_term in comment.body:
-			num_hits = num_hits + comment.body.count(search_term)
 			saveOutput(cb, cp)
-			print(search_term, ': found in this comment', comment.body.count(search_term), 'time(s)')
 		else:
 			print('could not find: ', search_term)
+
+text_file.close()
 
 if num_hits > 1:
 	print('\n'+'Found '+str(num_hits)+' hits')
@@ -113,4 +157,4 @@ while True:
 	else:
 		print('please enter either y or n')
 
-m = input('press enter to exit')
+m = input('press enter to close')
