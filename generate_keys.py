@@ -5,7 +5,12 @@ from os import path
 import getpass
 from key_pathing import KeyPathing as kp
 
-cipher_suite = kp.findmaster() #findmaster in key_pathing.py looks for masterkey, then initializes it.
+# looks for masterkey, then initializes it.
+mk_found = kp.findMaster()
+	if mk_found == True:
+		key_init = kp.initializeMaster()
+	else:
+		kp.createMaster()
 
 client_id= input('Enter your client Id: ').strip().encode()
 client_secret = input('Enter your client secret: ').strip().encode()
@@ -13,10 +18,10 @@ username = input('Enter your Reddit username: ').strip().encode()
 password = getpass.getpass('Enter your Reddit Password: ').encode()
 
 
-client_id_encoded = cipher_suite.encrypt(client_id)
-client_secret_encoded = cipher_suite.encrypt(client_secret)
-password_encoded = cipher_suite.encrypt(password)
-username_encoded = cipher_suite.encrypt(username)
+client_id_encoded = key_init.encrypt(client_id)
+client_secret_encoded = key_init.encrypt(client_secret)
+password_encoded = key_init.encrypt(password)
+username_encoded = key_init.encrypt(username)
 
 encoded_info = {client_id_encoded : 'keys/client_id_encoded', client_secret_encoded : 'keys/client_secret_encoded', password_encoded : 'keys/password_encoded',
 username_encoded : 'keys/username_encoded'}

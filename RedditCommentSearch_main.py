@@ -7,10 +7,13 @@ from key_pathing import KeyPathing as kp
 
 k= 'keys/'
 
-cipher_suite = kp.findmaster()
+mk_found = kp.findMaster()
+if mk_found == True:
+	key_init = kp.initializeMaster()
+else:
+	pass
 
 #get encrypted keys from their .key files.
-
 client_id_key = open(k+'client_id_encoded.key', 'r').read().encode()
 client_secret_key = open(k+'client_secret_encoded.key', 'r').read().encode()
 username_key = open(k+'username_encoded.key', 'r').read().encode()
@@ -22,7 +25,7 @@ decrypts = [''] *4
 lens = [0] *4
 ends = [0] *4
 for i in range(3):
-	decrypts[i] = str(cipher_suite.decrypt(decrypt_key[i]))
+	decrypts[i] = str(key_init.decrypt(decrypt_key[i]))
 	lens[i] = len(decrypts[i])
 	ends[i] = lens[i] - 1
 
@@ -51,29 +54,52 @@ while True:
 #ask user for string to search for in their comments.
 search_term = input('Enter search term: ')
 
+while True:
+	sub_search = input('do you wish to search a specific subreddit? y/n : ')
+	if sub_search == 'y':
+		search_subreddit = input('select a subreddit to search: ')
+		break
+	elif sub_search == 'n':
+		break
+	else:
+		print('please enter either y or n')
+
 num_hits = 0
+
+def saveOutput(comment_body, comment_permalink):
+	text_file = open('output/'+f'{search_term}.output', 'a', encoding='utf-8')
+	text_file.write(f'--{comment_body}\n')
+	text_file.write(f'  -url: {comment_permalink}\n\n')
+	text_file.close()
+
 
 #iterates over comments and checks for search_term's inclusion.
 for comment in user.comments.new(limit=None):
+	cb = comment.body
+	cp = comment.permalink
 	print(comment.body)
 	if search_term == '' or search_term.isspace(): #throws exception if search_term is empty.
 		raise Exception('Search term cannot be empty')
-	elif search_term in comment.body:
-		num_hits = num_hits + comment.body.count(search_term) #just a hit count for the end.
-		text_file = open('output/'+f'{search_term}.output', 'a', encoding='utf-8')
-		text_file.write(f'--{comment.body}\n')
-		text_file.write(f'  -url: {comment.permalink}\n\n')
-		text_file.close()
-		print(search_term, ': found in this comment', comment.body.count(search_term), 'time(s)')
-	else:
-		print('could not find: ', search_term)
+	elif sub_search == 'y': # if sub_search is yes, only pick out comments from specified subreddit.
+		if search_term in comment.body and str(comment.subreddit) == search_subreddit:
+			num_hits = num_hits + comment.body.count(search_term)
+			saveOutput(cb, cp)
+			print(search_term, ': found in this comment', comment.body.count(search_term), 'time(s)')
+		else:
+			print('could not find: '+ search_term+ ' in '+ search_subreddit)
+	else: # sub_search is no, just check all comments.
+		if search_term in comment.body:
+			num_hits = num_hits + comment.body.count(search_term)
+			saveOutput(cb, cp)
+			print(search_term, ': found in this comment', comment.body.count(search_term), 'time(s)')
+		else:
+			print('could not find: ', search_term)
 
 if num_hits > 1:
 	print('\n'+'Found '+str(num_hits)+' hits')
 else:
 	print('\nSearch did not return any results')
 
-islooping = True
 
 while True:
 	done = input('would you like to open output file in notepad?: y/n: ')
