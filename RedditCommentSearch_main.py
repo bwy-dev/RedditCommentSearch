@@ -1,27 +1,22 @@
-import praw, string, re, webbrowser
+import praw, re, webbrowser
 import subprocess as sp
 from cryptography.fernet import Fernet
 from os import path
+from prawcore.exceptions import NotFound, BadRequest
+from key_pathing import KeyPathing as kp
 
-base_path = path.dirname(__file__)
-key_file = path.isfile(path.join(base_path,'keys/masterkey.key'))
+k= 'keys/'
 
-kf= 'keys/'
+cipher_suite = kp.findmaster()
 
-if key_file == True: #checks if masterkey.key has been generated yet
-	check_key = open(kf+'masterkey.key', 'r')
-	rkey = check_key.read()
-	cipher_suite = Fernet(rkey)
-else:
-	raise Exception('masterkey.key does not exist! Run keys/generate_keys.py before running RedditCommentSearch.py')
+#get encrypted keys from their .key files.
 
-#get encrypted keys from their .key files
-client_id_key = open(kf+'client_id_encoded.key', 'r').read().encode()
-client_secret_key = open(kf+'client_secret_encoded.key', 'r').read().encode()
-username_key = open(kf+'username_encoded.key', 'r').read().encode()
-password_key = open(kf+'password_encoded.key', 'r').read().encode()
+client_id_key = open(k+'client_id_encoded.key', 'r').read().encode()
+client_secret_key = open(k+'client_secret_encoded.key', 'r').read().encode()
+username_key = open(k+'username_encoded.key', 'r').read().encode()
+password_key = open(k+'password_encoded.key', 'r').read().encode()
 
-#iterates over the keys, decrypting them, then working out their length to remove the ''s from them
+#iterates over the keys, decrypting them, then working out their length to remove the ''s from them.
 decrypt_key = [client_id_key, client_secret_key, username_key, password_key]
 decrypts = [''] *4 
 lens = [0] *4
@@ -38,21 +33,33 @@ r = praw.Reddit(client_id= decrypts[0][2:ends[0]],
 				username= decrypts[2][2:ends[2]],
 				password= decrypts[3][2:ends[3]])
 
-#username of redditor whos comment history you want to search, while this is currently set to the users, it can be any usename you wish
-user = r.redditor(decrypts[2][2:ends[2]])
+#asks user to enter a Reddit username whos comments the script will look through.
+while True:
+	chooseuser = input('Select user to search: ')
+	try:
+		if getattr(r.redditor(chooseuser), 'is_suspended', False): #checks to see if the redditor is suspended.
+			print('user is suspended')
+	except NotFound:# if not suspended, does it throw a NotFound exception?
+		print('user does not exist')
+	except BadRequest:# if what is entered isnt a valid username (eg. contains punctuation) throw BadRequest exception.
+		print('please enter a valid username')
+	else:
+		user = r.redditor(chooseuser)# if none of these, reddior exists, continue on to search term input.
+		break
 
-#ask user for string to search for in their comments
+
+#ask user for string to search for in their comments.
 search_term = input('Enter search term: ')
 
 num_hits = 0
 
-#iterates over comments and checks for search_term's inclusion
+#iterates over comments and checks for search_term's inclusion.
 for comment in user.comments.new(limit=None):
 	print(comment.body)
-	if search_term == '' or search_term.isspace(): #throws exception if search_term is empty
+	if search_term == '' or search_term.isspace(): #throws exception if search_term is empty.
 		raise Exception('Search term cannot be empty')
 	elif search_term in comment.body:
-		num_hits = num_hits + comment.body.count(search_term) #just a hit count for the end
+		num_hits = num_hits + comment.body.count(search_term) #just a hit count for the end.
 		text_file = open('output/'+f'{search_term}.output', 'a', encoding='utf-8')
 		text_file.write(f'--{comment.body}\n')
 		text_file.write(f'  -url: {comment.permalink}\n\n')

@@ -14,3 +14,6 @@
 
 #ignore any test files
 test.py
+
+#ignore all compiled python for now
+*.pyc
