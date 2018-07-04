@@ -1,20 +1,18 @@
-import praw, webbrowser
+import praw, webbrowser, sys
 import subprocess as sp
 from cryptography.fernet import Fernet
 from os import path
 from prawcore.exceptions import NotFound, BadRequest
-from key_pathing import KeyPathing as kp
-
-
+from key_pathing import MasterKey as mk
 
 
 k= 'keys/'
 
-mk_found = kp.findMaster()
+mk_found = mk.findMaster()
 if mk_found == True:
-	key_init = kp.initializeMaster()
+	key_init = mk.initializeMaster()
 else:
-	pass
+	sys.exit('No masterykey found, please run generate_keys.py first')
 
 #get encrypted keys from their .key files.
 client_id_key = open(k+'client_id_encoded.key', 'r').read().encode()
@@ -31,6 +29,8 @@ for i in range(3):
 	decrypts[i] = str(key_init.decrypt(decrypt_key[i]))
 	lens[i] = len(decrypts[i])
 	ends[i] = lens[i] - 1
+
+print(decrypts[2])
 
 #checks your Reddit information in order to connect to Reddit API.
 r = praw.Reddit(client_id= decrypts[0][2:ends[0]],
@@ -53,32 +53,7 @@ while True:
 		user = r.redditor(chooseuser)# if none of these, reddior exists, continue on to search term input.
 		break
 
-
-#generates a list of all subreddits user has commented it
-sr_output_file = path.isfile(f'output/{chooseuser}_subreddits.output')
-
-subreddits_list_raw = []
-subreddits_list = []
-if sr_output_file == False:
-	print('generating subreddit list...')
-	comments = user.comments.new(limit=None)
-	for comment in comments:
-		sr_commented = comment.subreddit.display_name	
-		subreddits_list_raw.append(sr_commented)
-
-	for i in subreddits_list_raw:
-		if i not in subreddits_list:
-			subreddits_list.append(i)
-
-	sr_file = open(f'output/{chooseuser}_subreddits.output', 'a', encoding='utf-8')	
-	for i in subreddits_list:
-		sr_file.write(f'{i}\n')
-	sr_file.close()
-	for p in subreddits_list:
-		print(p)
-else:
-	print('generating subreddit list...')
-	lines_list = open(f'output/{chooseuser}_subreddits.output').read().splitlines()
+def formatList(lines_list):
 	if len(lines_list) % 2 != 0:
 		lines_list.append(" ")
 	half = len(lines_list)//2
@@ -90,13 +65,42 @@ else:
 
 
 #ask user for string to search for in their comments.
-num_hits = 0
-search_term = input('Enter search term: ')
+while True:
+	search_term = input('Enter search term: ')
+	if search_term == '' or search_term.isspace():
+		print('Search term cannot be empty')
+	else:
+		break
 
 
 while True:
 	sub_search = input('do you wish to search a specific subreddit? y/n : ')
 	if sub_search == 'y':
+		#generates a list of all subreddits user has commented it
+		sr_output_file = path.isfile(f'output/{chooseuser}_subreddits.output')
+		subreddits_list_raw = []
+		subreddits_list = []
+		if sr_output_file == False:
+			print('generating subreddit list...')
+			comments = user.comments.new(limit=None)
+			for comment in comments:
+				sr_commented = comment.subreddit.display_name	
+				subreddits_list_raw.append(sr_commented)
+
+			for i in subreddits_list_raw:
+				if i not in subreddits_list:
+					subreddits_list.append(i)
+
+			sr_file = open(f'output/{chooseuser}_subreddits.output', 'a', encoding='utf-8')	
+			for i in subreddits_list:
+				sr_file.write(f'{i}\n')
+			sr_file.close()
+			formatList(subreddits_list)
+		else:
+			print('generating subreddit list...')
+			lines_list = open(f'output/{chooseuser}_subreddits.output').read().splitlines()
+			formatList(lines_list)
+
 		search_subreddit = input('select a subreddit to search: ')
 		try:
 			r.subreddit(search_subreddit).random()
@@ -108,6 +112,7 @@ while True:
 	else:
 		print('please enter either y or n')
 
+num_hits = 0
 
 def saveOutput(comment_body, comment_permalink):
 	global num_hits
@@ -117,16 +122,15 @@ def saveOutput(comment_body, comment_permalink):
 	text_file.write(f'  -url: {comment_permalink}\n\n')
 	print(search_term, ': found in this comment', comment_body.count(search_term), 'time(s)')
 
+text_file = open('output/'+f'{search_term}.output', 'a', encoding='utf-8')
 
 #iterates over comments and checks for search_term's inclusion.
 for comment in user.comments.new(limit=None):
 	cb = comment.body
 	cp = comment.permalink
-	text_file = open('output/'+f'{search_term}.output', 'a', encoding='utf-8')
+	
 	print(comment.body)
-	if search_term == '' or search_term.isspace(): #throws exception if search_term is empty. @@@ PUT UP BY search_term IN WHILE LOOP @@@
-		raise Exception('Search term cannot be empty')
-	elif sub_search == 'y': # if sub_search is yes, only pick out comments from specified subreddit.
+	if sub_search == 'y': # if sub_search is yes, only pick out comments from specified subreddit.
 		if search_term in comment.body and str(comment.subreddit) == search_subreddit:
 			saveOutput(cb, cp)
 		else:

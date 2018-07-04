@@ -3,7 +3,7 @@ from os import path
 from cryptography.fernet import Fernet
 
 
-class KeyPathing():
+class MasterKey():
 
 	def createMaster():
 		key = Fernet.generate_key() 
